@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Enterprise Dark Theme CSS
+# Custom Enterprise Dark Theme CSS Accents
 st.markdown("""
     <style>
         .stApp {
@@ -128,11 +128,11 @@ QUESTIONNAIRE_MAP = {
     ]
 }
 
-# --- 3. FAIL-SAFE DATA LAYER ---
+# --- 3. FAIL-SAFE DATA LAYER WITH MEMORY PERSISTENCE ---
 DB_FILE = "responses_database.json"
 
 def generate_initial_mock_data():
-    """Generates standard initial records so the dashboard is never empty."""
+    """Generates default seed responses so analytics charts are never empty."""
     np.random.seed(42)
     initial_records = []
     for i in range(100):
@@ -145,11 +145,11 @@ def generate_initial_mock_data():
                 "Question_No": f"Q{idx}",
                 "Question_Text": q_text,
                 "Rating": int(np.random.choice([3, 4, 5], p=[0.2, 0.5, 0.3])),
-                "Comment": "System benchmark entry."
+                "Comment": "System benchmark baseline entry."
             })
     return initial_records
 
-# Safely load the database entries without crashing the script execution
+# Initialize state engine safely
 if "cached_responses" not in st.session_state:
     loaded_data = None
     if os.path.exists(DB_FILE):
@@ -164,7 +164,7 @@ if "cached_responses" not in st.session_state:
     else:
         st.session_state.cached_responses = generate_initial_mock_data()
 
-# Build DataFrame smoothly
+# Process data into standard pandas DataFrame
 df_responses = pd.DataFrame(st.session_state.cached_responses)
 
 # --- 4. HEADER INTERFACE ---
@@ -187,19 +187,19 @@ for index, dept_name in enumerate(QUESTIONNAIRE_MAP.keys()):
     with cols[col_selector]:
         score = dept_oss_dict.get(dept_name, 4.0)
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric(label=dept_name, value=f"{score} / 5.0", delta=f"{round(score - 3.5, 2)} Target")
+        st.metric(label=dept_name, value=f"{score} / 5.0", delta=f"{round(score - 3.5, 2)} vs Target")
         st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- 6. INTERACTIVE APP WORKSPACE METRICS ---
+# --- 6. INTERACTIVE WORKING WORKSPACE ---
 tab1, tab2, tab3 = st.tabs([
     "🎯 Customer-by-Customer Analysis", 
     "📝 Question-by-Question Diagnostics",
     "✍️ Fill Online Feedback Form"
 ])
 
-# -- TAB 1: CUSTOMER SPECIFIC BREAKDOWNS --
+# -- TAB 1: CUSTOMER ANALYTICAL BREAKDOWNS --
 with tab1:
     st.markdown("### Customer Deep-Dive Assessment")
     selected_dept = st.selectbox("Select Internal Department to Audit:", list(QUESTIONNAIRE_MAP.keys()), key="select_tab1")
@@ -223,9 +223,9 @@ with tab1:
             )
             st.plotly_chart(fig_radar, use_container_width=True)
     else:
-        st.warning("No data points available for this selection yet.")
+        st.warning("No data entries registered for this department division yet.")
 
-# -- TAB 2: INDIVIDUAL BAR GRAPHS --
+# -- TAB 2: DIAGNOSTICS VIEW --
 with tab2:
     st.markdown("### Question Metric Distribution Analysis")
     chosen_dept = st.selectbox("Pick Target Department for Breakdown:", list(QUESTIONNAIRE_MAP.keys()), key="select_tab2")
@@ -242,10 +242,10 @@ with tab2:
         fig_dist.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#F8FAFC'), height=350, coloraxis_showscale=False)
         st.plotly_chart(fig_dist, use_container_width=True)
     else:
-        st.info("Awaiting new submissions for this question entry.")
+        st.info("Awaiting new evaluation entries to map response metrics.")
 
-# -- TAB 3: LIVE ONLINE SURVEY ENTRY ENVIRONMENT --
-with view_tab3 = tab3:
+# -- TAB 3: FIXED LIVE ONLINE FEEDBACK FORM ENTRY --
+with tab3:
     st.markdown("### ✍️ Digital Store Evaluation Submission Form")
     form_dept = st.selectbox("Your Department / Section:", list(QUESTIONNAIRE_MAP.keys()), key="select_tab3")
     dept_questions = QUESTIONNAIRE_MAP[form_dept]
@@ -256,7 +256,7 @@ with view_tab3 = tab3:
             st.markdown(f"##### **Criteria {idx}**")
             st.write(question_string)
             responses_payload[f"Q{idx}"] = st.radio(
-                "Select Rating Level:", options=[1, 2, 3, 4, 5],
+                "Select Rating Level Alignment:", options=[1, 2, 3, 4, 5],
                 format_func=lambda x: {1:"1. Strongly Disagree", 2:"2. Disagree", 3:"3. Neutral", 4:"4. Agree", 5:"5. Strongly Agree"}[x],
                 horizontal=True, key=f"radio_{form_dept.replace(' ', '_')}_{idx}"
             )
@@ -278,17 +278,17 @@ with view_tab3 = tab3:
                     "Comment": str(additional_comments)
                 })
             
-            # Save right to state engine memory layer
+            # Save entries straight to the runtime dataset memory array
             st.session_state.cached_responses.extend(new_entries)
             
-            # Save hardcopy backup to cloud directory
+            # Write a secure JSON persistent copy into the workspace storage directory
             try:
                 with open(DB_FILE, "w", encoding="utf-8") as f:
                     json.dump(st.session_state.cached_responses, f, indent=4, ensure_ascii=False)
             except:
                 pass
                 
-            st.success(f"✅ Success! Feedback from '{form_dept}' has been securely delivered.")
+            st.success(f"✅ Submission successful! Evaluation feedback from '{form_dept}' has been processed.")
             st.rerun()
 
 st.markdown("---")
@@ -301,4 +301,4 @@ try:
     fig_heatmap.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#F8FAFC'), height=380)
     st.plotly_chart(fig_heatmap, use_container_width=True)
 except:
-    st.info("Heatmap matrix will render completely once initial submissions register.")
+    st.info("Heatmap grid visualization will auto-render once initial datasets finalize.")
