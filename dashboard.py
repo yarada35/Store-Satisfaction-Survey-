@@ -43,7 +43,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. EXACT QUESTIONNAIRE MAPS FROM UPLOADED FILES ---
+# --- 2. EXACT QUESTIONNAIRE MAPS ---
 QUESTIONNAIRE_MAP = {
     "Product Industrialization & QA": [
         "Maintaining inventory of products and raw materials in accordance with established procedures and standards.",
@@ -211,7 +211,10 @@ with tab1:
         col_l, col_r = st.columns([1, 1])
         with col_l:
             st.markdown(f"#### Average Scores for **{selected_dept}**")
-            st.dataframe(chart_data.rename(columns={"Question_No": "No.", "Question_Text": "Criteria", "Rating": "Score"}).set_index("No."), use_container_width=True)
+            st.dataframe(
+                chart_data.rename(columns={"Question_No": "No.", "Question_Text": "Criteria", "Rating": "Score"}).set_index("No."), 
+                width="stretch"
+            )
         with col_r:
             fig_radar = go.Figure(go.Scatterpolar(
                 r=chart_data["Rating"], theta=chart_data["Question_No"], fill='toself',
@@ -221,7 +224,7 @@ with tab1:
                 polar=dict(radialaxis=dict(visible=True, range=[1, 5], gridcolor="#334155")),
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#F8FAFC'), height=300
             )
-            st.plotly_chart(fig_radar, use_container_width=True)
+            st.plotly_chart(fig_radar, width="stretch")
     else:
         st.warning("No data entries registered for this department division yet.")
 
@@ -240,11 +243,11 @@ with tab2:
         
         fig_dist = px.bar(distribution, x="Label", y="Count", color="Count", color_continuous_scale=['#1E293B', '#38BDF8'])
         fig_dist.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#F8FAFC'), height=350, coloraxis_showscale=False)
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(fig_dist, width="stretch")
     else:
         st.info("Awaiting new evaluation entries to map response metrics.")
 
-# -- TAB 3: FIXED LIVE ONLINE FEEDBACK FORM ENTRY --
+# -- TAB 3: LIVE ONLINE FEEDBACK FORM ENTRY --
 with tab3:
     st.markdown("### ✍️ Digital Store Evaluation Submission Form")
     form_dept = st.selectbox("Your Department / Section:", list(QUESTIONNAIRE_MAP.keys()), key="select_tab3")
@@ -278,10 +281,8 @@ with tab3:
                     "Comment": str(additional_comments)
                 })
             
-            # Save entries straight to the runtime dataset memory array
             st.session_state.cached_responses.extend(new_entries)
             
-            # Write a secure JSON persistent copy into the workspace storage directory
             try:
                 with open(DB_FILE, "w", encoding="utf-8") as f:
                     json.dump(st.session_state.cached_responses, f, indent=4, ensure_ascii=False)
@@ -299,6 +300,6 @@ try:
     matrix_data = df_responses.groupby(["Department", "Question_No"])["Rating"].mean().unstack().round(2)
     fig_heatmap = px.imshow(matrix_data, x=matrix_data.columns, y=matrix_data.index, color_continuous_scale=['#EF4444', '#F59E0B', '#10B981'])
     fig_heatmap.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#F8FAFC'), height=380)
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.plotly_chart(fig_heatmap, width="stretch")
 except:
     st.info("Heatmap grid visualization will auto-render once initial datasets finalize.")
