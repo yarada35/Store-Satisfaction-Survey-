@@ -1,3 +1,6 @@
 fastapi
 uvicorn
 vaderSentiment
+streamlit
+plotly
+requests
