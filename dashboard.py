@@ -3,142 +3,276 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# 1. PAGE LAYOUT CONFIGURATION
+# 1. PAGE SETUP & THEME CONTEXT
 st.set_page_config(
-    page_title="HORIZON ADDIS TYRE - Store Satisfaction Hub",
+    page_title="HORIZON ADDIS TYRE — Internal Satisfaction Hub",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 2. BRANDING HEADER
-st.title("🏭 HORIZON ADDIS TYRE")
-st.subheader("Store Management Department — Internal Customer Satisfaction Live Hub")
-st.markdown("---")
+# 2. DICTIONARY CONTAINING RAW CRITERIA DIRECTLY EXTRACTED FROM YOUR JSON FILES
+DEPARTMENTAL_CRITERIA = {
+    "PIQA": [
+        "Maintaining inventory of products and raw materials in accordance with established procedures and standards.",
+        "Regarding the handling and monitoring of expired products.",
+        "Receive and implement work orders and expert opinions on product and raw material management.",
+        "Work according to the operating system to prevent products and raw materials from being damaged.",
+        "Providing the goods and information you need quickly and clearly.",
+        "Providing timely information regarding the decision to pass incoming raw materials and implementing the decision accordingly.",
+        "Employee reception and information reception."
+    ],
+    "Production": [
+        "Requested raw materials are delivered on time to mixing area.",
+        "Delivered items are labeled with Green tag always.",
+        "Delivered items are free from Foreign material & leakage.",
+        "Natural rubber is delivered with proper metallic pallet requirement.",
+        "Cord roll handling & storing condition.",
+        "Customer handling ability and hospitality of store workers."
+    ],
+    "S&M": [
+        "Provide quality inventory reports on time.",
+        "Store operating system ensures the satisfaction of External customers.",
+        "Willingness and commitment to jointly resolve workplace problems and disagreements.",
+        "Get the goods and information you need in a timely and quality manner.",
+        "Regarding store implementation of the Waiting time for external customers.",
+        "Staff hospitality and timely customer service."
+    ],
+    "Purchase": [
+        "Providing updated information regarding all purchase requests.",
+        "Responding requests from the purchasing department in a timely manner.",
+        "Providing the necessary information/ specifications in adequate manner for goods/ services to be purchased.",
+        "Provide timely and quality raw material inventory reports.",
+        "When a purchased item arrives, it must be handled and received efficiently.",
+        "Handling drivers carrying goods purchased from domestic and foreign countries in a timely and quality manner.",
+        "Employee hospitality and cooperation."
+    ],
+    "PMITS": [
+        "Implementing deployed systems efficiently and as required.",
+        "Providing required reports in a timely and quality manner.",
+        "Accept and implement feedback.",
+        "Delivering the goods you need quickly and with quality.",
+        "Good hospitality and cooperation of employees."
+    ],
+    "Finance": [
+        "ERP and inventory data processing And delivering in a timely and quality Manner.",
+        "Work efficiently and effectively during planned product inventory, as well as preparation and work.",
+        "Getting the information you need in quality and on time.",
+        "Delivering the goods you want with quality and speed.",
+        "Accept and implement the recommendations given.",
+        "The sincerity and hospitality of the staff."
+    ],
+    "PE": [
+        "Follow up on urgent purchase orders, place orders and provide information when received.",
+        "Providing the property and information you need in a Clear and concise Manner.",
+        "Verify with the relevant body that the purchased items are in accordance with the standards.",
+        "Collaboration for any support Request from your department.",
+        "Staff orientation and customer service and Reception."
+    ],
+    "HR": [
+        "Timely report employees performance evaluation result.",
+        "Timely request the department's manpower recruitment.",
+        "Proper Handling of employees with a discipline case or Handling of low performers.",
+        "Appropriate and timely planning and execution of trainings for employees.",
+        "Proper employee leave management.",
+        "Delivering the goods you need quickly and with quality.",
+        "Responsible for cleaning and other related tasks in the common areas.",
+        "Good hospitality and cooperation of employees."
+    ],
+    "Safety Section": [
+        "Carrying out work in accordance with established safety guidelines.",
+        "Supervision and work in the use and maintenance of safety signs.",
+        "Accepting and implementing expert advice to protect assets in warehouses from hazards.",
+        "Find the item you want quickly and with quality.",
+        "Staff hospitality and customer reception and handling."
+    ],
+    "Security": [
+        "Working according to a jointly agreed procedure during the shipment.",
+        "Work with security personnel to protect products from damage and theft.",
+        "Accepting and carrying out work orders from professionals to protect property from danger.",
+        "Solving problems during shipment by consulting together.",
+        "Find the items and information you need quickly and efficiently.",
+        "Good staff and customer service."
+    ]
+}
 
-# 3. MOCK DATA STREAM GENERATOR (Structured from Questionnaire Schema)
-@st.cache_data
-def generate_industry_survey_data():
-    np.random.seed(42)
-    departments = ["PI&QA", "Production", "S&M", "Purchase", "PMITS", "Finance", "PE", "HR", "Security", "Safety"]
-    records = []
-    
-    # Generate realistic evaluations (Scores 1 to 5) reflecting varying sample metrics
-    for dept in departments:
-        samples = np.random.randint(8, 15)
-        for _ in range(samples):
-            records.append({
-                "Department": dept,
-                "Inventory Management & Rules": np.random.randint(3, 6),
-                "Timeliness & Delivery Speed": np.random.randint(2, 6),
-                "Staff Hospitality & Cooperation": np.random.randint(3, 6),
-                "Operational Support & Feedback": np.random.randint(3, 6),
-                "Overall Satisfaction": round(np.random.uniform(3.4, 4.9), 2)
+# 3. INITIALIZE STATE ENGINE (Stores feedback in runtime memory)
+if "survey_database" not in st.session_state:
+    # Build historical template entries to populate charts beautifully on startup
+    pre_populated_data = []
+    np.random.seed(10)
+    for dept_key, questions in DEPARTMENTAL_CRITERIA.items():
+        for i in range(5):  # Inject 5 historical submission forms for each department
+            random_scores = [np.random.randint(3, 6) for _ in questions]
+            pre_populated_data.append({
+                "Timestamp": f"2026-06-19 10:{15 + i}:00",
+                "Department": dept_key,
+                "Average Score": round(float(np.mean(random_scores)), 2),
+                "Feedback Comments": "System generated verification audit trail."
             })
-    return pd.DataFrame(records)
+    st.session_state["survey_database"] = pre_populated_data
 
-df_all_surveys = generate_industry_survey_data()
-
-# 4. SIDEBAR NAVIGATION CONTROLS
-st.sidebar.image("https://img.icons8.com/fluency/96/tire.png", width=60)
-st.sidebar.header("Dashboard Filters")
-
-dept_list = ["All Departments"] + sorted(list(df_all_surveys["Department"].unique()))
-selected_dept = st.sidebar.selectbox("Filter by Submitting Department:", dept_list)
-
-# Apply Dataset Filter Matrix
-if selected_dept != "All Departments":
-    df_filtered = df_all_surveys[df_all_surveys["Department"] == selected_dept]
-else:
-    df_filtered = df_all_surveys
-
-# 5. CORE KPI SUMMARY CARDS
-st.markdown("### 📊 Live Evaluation Metrics Matrix")
-col1, col2, col3, col4 = st.columns(4)
-
-avg_sat = round(df_filtered["Overall Satisfaction"].mean(), 2)
-avg_time = round(df_filtered["Timeliness & Delivery Speed"].mean(), 2)
-avg_hosp = round(df_filtered["Staff Hospitality & Cooperation"].mean(), 2)
-total_count = len(df_filtered)
-
-with col1:
-    st.metric(label="Overall Satisfaction Index", value=f"{avg_sat} / 5.0", delta="Live Tracker")
-with col2:
-    st.metric(label="Timeliness Score (Avg)", value=f"{avg_time} / 5.0", delta="+0.08")
-with col3:
-    st.metric(label="Hospitality & Customer Care", value=f"{avg_hosp} / 5.0", delta="+0.15")
-with col4:
-    st.metric(label="Responses Evaluated", value=str(total_count), delta="Synchronized")
-
+# 4. BRANDING HEADERS
+st.title("🏭 HORIZON ADDIS TYRE")
+st.subheader("Store Management Department — Internal Satisfaction System")
 st.markdown("---")
 
-# 6. TABULAR FUNCTIONAL VIEWS (Fixed legacy compilation bugs)
-tab1, tab2, tab3 = st.tabs(["📈 Comparative Analytics", "📋 Detailed Evaluation Registry", "⚙️ Connection & API Settings"])
+# 5. SIDEBAR MODE CONTROLLER
+st.sidebar.image("https://img.icons8.com/fluency/96/tire.png", width=55)
+st.sidebar.header("Navigation Hub")
+app_mode = st.sidebar.radio("Go To Area:", ["📋 Active Survey Form Entry", "📈 Real-Time Data Dashboard"])
 
-# --- Tab 1: Interactive Plotly Visualizations ---
-with tab1:
-    st.markdown("#### Store Operations Performance Analytics")
+# ======================================================================================
+# MODE A: ACTIVE QUESTIONNAIRE FILLING ENGINE
+# ======================================================================================
+if app_mode == "📋 Active Survey Form Entry":
+    st.markdown("### 📋 Store Performance Evaluation Form")
+    st.info("Your evaluations directly optimize stockroom workflow, logistics accuracy, and delivery times. Please score objectively.")
     
-    col_chart1, col_chart2 = st.columns(2)
+    # Active Dynamic Dropdown Select
+    target_dept = st.selectbox(
+        "Select Your Submitting Department Context:",
+        list(DEPARTMENTAL_CRITERIA.keys())
+    )
     
-    with col_chart1:
-        # Group metrics cleanly by Department
-        df_dept_summary = df_all_surveys.groupby("Department")["Overall Satisfaction"].mean().reset_index()
-        fig_bar = px.bar(
-            df_dept_summary,
-            x="Department",
-            y="Overall Satisfaction",
-            title="Average Satisfaction Level Across Tire Plant Sections",
-            labels={"Overall Satisfaction": "Rating Score (1-5)"},
-            color="Overall Satisfaction",
-            color_continuous_scale=px.colors.sequential.Plotly3
+    st.markdown(f"#### 🔍 Satisfaction Evaluation Questionnaire: **{target_dept} Department**")
+    st.caption("Grading Scale Matrix: 1 = Strongly Disagree | 2 = Disagree | 3 = Neutral | 4 = Agree | 5 = Strongly Agree")
+    
+    # Render active criteria matching selection dynamically
+    questions_list = DEPARTMENTAL_CRITERIA[target_dept]
+    user_scores = []
+    
+    # Generating targeted radio selections per question
+    with st.form(key="active_evaluation_form", clear_on_submit=True):
+        for index, criterion in enumerate(questions_list):
+            st.markdown(f"**Question {index + 1}:** {criterion}")
+            score = st.select_slider(
+                "Assign Rating Score:",
+                options=[1, 2, 3, 4, 5],
+                value=4,
+                key=f"q_{target_dept}_{index}"
+            )
+            user_scores.append(score)
+            st.markdown("<br>", unsafe_allowed_html=True)
+            
+        additional_comments = st.text_area("If you have additional validation points please specify here:")
+        
+        # Submission Handling
+        submit_btn = st.form_submit_button("Submit Department Evaluation", width="content")
+        if submit_btn:
+            calc_avg = round(float(np.mean(user_scores)), 2)
+            
+            # Construct submission dataset payload record
+            new_record = {
+                "Timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Department": target_dept,
+                "Average Score": calc_avg,
+                "Feedback Comments": additional_comments if additional_comments else "None provided."
+            }
+            
+            # Commit to Active Session Memory State
+            st.session_state["survey_database"].append(new_record)
+            st.success(f"🎉 Success! Feedback for '{target_dept}' computed with an Average Index of {calc_avg}/5.0 and securely filed.")
+            st.balloons()
+
+# ======================================================================================
+# MODE B: DATA ANALYTICS HUB
+# ======================================================================================
+else:
+    st.markdown("### 📈 Live Analytics & Evaluation Registry")
+    
+    # Parse running operational database cache 
+    df_live = pd.DataFrame(st.session_state["survey_database"])
+    
+    # Filter selection logic
+    st.markdown("#### Live Filters")
+    dashboard_filter = st.selectbox(
+        "Filter Dashboard View Scope:",
+        ["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys())
+    )
+    
+    if dashboard_filter != "All Departments":
+        df_display = df_live[df_live["Department"] == dashboard_filter]
+    else:
+        df_display = df_live
+
+    # High-Value Card KPI Rows
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(
+            label="Total Evaluation Records Captured", 
+            value=str(len(df_display)), 
+            delta="Live Dynamic Sink"
         )
-        fig_bar.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-        # 2026 Deprecation Fix: use width="stretch" instead of use_container_width=True
-        st.plotly_chart(fig_bar, width="stretch", key="dept_bar_analytics")
-
-    with col_chart2:
-        fig_box = px.box(
-            df_filtered,
-            y="Overall Satisfaction",
-            x="Department" if selected_dept == "All Departments" else None,
-            title=f"Satisfaction Score Variance Range: {selected_dept}",
-            points="all",
-            color_discrete_sequence=["#10b981"]
+    with col2:
+        global_avg = round(df_display["Average Score"].mean(), 2) if not df_display.empty else 0.0
+        st.metric(
+            label="Aggregated Department Satisfaction Index", 
+            value=f"{global_avg} / 5.0", 
+            delta=None
         )
-        fig_box.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-        st.plotly_chart(fig_box, width="stretch", key="satisfaction_variance_box")
-
-# --- Tab 2: Inventory Grid Registry ---
-with tab2:
-    st.markdown(f"#### Logged Internal Survey Submissions Tracking Database ({selected_dept})")
+    with col3:
+        highest_dept = df_live.groupby("Department")["Average Score"].mean().idxmax() if not df_live.empty else "N/A"
+        st.metric(
+            label="Top Performing Partner Relationship", 
+            value=highest_dept, 
+            delta="Highest Service Level"
+        )
+        
+    st.markdown("---")
     
-    # 2026 Deprecation Fix: use width="stretch" for data table scaling 
+    # Graphical Visual Splits
+    chart_col1, chart_col2 = st.columns(2)
+    
+    with chart_col1:
+        if not df_live.empty:
+            df_chart = df_live.groupby("Department")["Average Score"].mean().reset_index()
+            fig_bar = px.bar(
+                df_chart,
+                x="Department",
+                y="Average Score",
+                title="Mean Satisfaction Matrix Across Plant Branches",
+                labels={"Average Score": "Rating Score (Scale 1-5)"},
+                color="Average Score",
+                color_continuous_scale=px.colors.sequential.Tealgrn
+            )
+            fig_bar.update_layout(yaxis_range=[1, 5], margin=dict(l=15, r=15, t=35, b=15))
+            # 2026 Conforming Parameter: width="stretch"
+            st.plotly_chart(fig_bar, width="stretch", key="dash_bar_analytics")
+        else:
+            st.warning("Awaiting initial metrics logs.")
+            
+    with chart_col2:
+        if not df_display.empty:
+            fig_trend = px.scatter(
+                df_display,
+                x="Timestamp",
+                y="Average Score",
+                color="Department",
+                title="Timeline Variance of Logged Department Submissions",
+                size=[10] * len(df_display),
+                hover_data=["Feedback Comments"]
+            )
+            fig_trend.update_layout(yaxis_range=[1, 5], margin=dict(l=15, r=15, t=35, b=15))
+            st.plotly_chart(fig_trend, width="stretch", key="dash_trend_scatter")
+            
+    st.markdown("---")
+    
+    # 6. CENTRAL EXCEL/CSV INVENTORY DATAGRID
+    st.markdown("#### 📋 Consolidated Historical Database Grid View")
+    
+    # Conforming Parameter: width="stretch" replaces the old warning-heavy parameter
     st.dataframe(
-        df_filtered, 
-        width="stretch", 
+        df_display.sort_values(by="Timestamp", ascending=False),
+        width="stretch",
         hide_index=True
     )
     
-    # Interactive dataset downloading endpoint
-    csv_bytes = df_filtered.to_csv(index=False).encode('utf-8')
+    # Export Module
+    csv_stream = df_display.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download Structured Dataset as CSV",
-        data=csv_bytes,
-        file_name="horizon_addis_tyre_satisfaction_report.csv",
+        label="📥 Download Current Query Output View as CSV",
+        data=csv_stream,
+        file_name="horizon_addis_live_store_metrics.csv",
         mime="text/csv",
-        width="content"  # 2026 widget component alignment standard
+        width="content"
     )
-
-# --- Tab 3: Operational System Adjustments ---
-with tab3:
-    st.markdown("#### Dashboard Endpoint Configurations")
-    st.info("System configuration metrics link directly to your active repository setup.")
-    
-    api_url = st.text_input(
-        "Core Production API Endpoint URL Context:", 
-        value="https://sfhnmvmr7ipaj7fvx7oyae.streamlit.app/api/v1/metrics"
-    )
-    
-    # Compact button layout config using clean metrics styling
-    if st.button("Verify DB Sync Status", width="content"):
-        st.success("API Pipeline Communication Integrity Verified. Systems Operating Nominally.")
