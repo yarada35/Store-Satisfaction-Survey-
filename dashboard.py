@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import requests
+import json
+import os
 
 # --- PAGE CONFIGURATION & THEME ---
 st.set_page_config(
@@ -39,7 +40,6 @@ st.markdown("""
             margin-bottom: 12px;
             min-height: 110px;
         }
-        /* Custom styling for the survey radio layout */
         div[data-testid="stMarkdownContainer"] p {
             font-size: 1.05rem;
         }
@@ -131,34 +131,50 @@ QUESTIONNAIRE_MAP = {
     ]
 }
 
-# --- DATA GENERATOR / PIPELINE ---
-@st.cache_data
-def generate_factory_responses():
+# --- ACTIVE DATA PERSISTENCE LAYER (JSON DATA ARCHIVE) ---
+DB_FILE = "responses_database.json"
+
+def load_stored_responses():
+    """Reads persistent feedback entries or creates an initial historical dataset if empty."""
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data:
+                    return pd.DataFrame(data)
+        except Exception:
+            pass
+            
+    # Fallback/Initial Baseline Seeding Data if file doesn't exist yet
     np.random.seed(42)
-    records = []
-    for _ in range(300):
+    initial_records = []
+    for i in range(150):
         dept = np.random.choice(list(QUESTIONNAIRE_MAP.keys()))
         questions = QUESTIONNAIRE_MAP[dept]
-        
         for idx, q_text in enumerate(questions, start=1):
-            records.append({
-                "Response_ID": _,
+            initial_records.append({
+                "Timestamp": "2026-06-19 12:00:00",
                 "Department": dept,
                 "Question_No": f"Q{idx}",
                 "Question_Text": q_text,
-                "Rating": np.random.choice([1, 2, 3, 4, 5], p=[0.05, 0.10, 0.20, 0.40, 0.25])
+                "Rating": int(np.random.choice([1, 2, 3, 4, 5], p=[0.05, 0.10, 0.20, 0.40, 0.25])),
+                "Comment": "Initial baseline audit record."
             })
-    return pd.DataFrame(records)
+    # Save base baseline configuration to start file
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(initial_records, f, indent=4)
+    return pd.DataFrame(initial_records)
 
-df_responses = generate_factory_responses()
+# Load real-time records from file
+df_responses = load_stored_responses()
 
 # --- HEADER SECTION ---
 st.title("🏭 HORIZON ADDIS TYRE")
-st.subheader("Store Management Department - Internal Customer Satisfaction Hub")
+st.subheader("Store Management Department - Active Customer Satisfaction Portal")
 st.markdown("---")
 
 # --- SECTION 1: ENTERPRISE SCORECARDS ---
-st.markdown("### 📊 Departmental Overall Satisfaction Standings (OSS / 5.0)")
+st.markdown("### 📊 Live Departmental Overall Satisfaction Standings (OSS / 5.0)")
 
 dept_oss = df_responses.groupby("Department")["Rating"].mean().round(2).reset_index()
 dept_oss.columns = ["Department", "OSS"]
@@ -179,14 +195,14 @@ for index, dept_name in enumerate(QUESTIONNAIRE_MAP.keys()):
 
 st.markdown("---")
 
-# --- SECTION 2: THREE TOGGLEABLE APP TABS (INCLUDING FORM) ---
+# --- SECTION 2: THREE ACTIVE APP TABS ---
 view_tab1, view_tab2, view_tab3 = st.tabs([
     "🎯 Customer-by-Customer Analysis", 
     "📝 Question-by-Question Diagnostics",
     "✍️ Fill Online Feedback Form"
 ])
 
-# -- TAB 1: CUSTOMER VIEW --
+# -- TAB 1: CUSTOMER ANALYTICAL DEEP-DIVE --
 with view_tab1:
     st.markdown("### Customer Deep-Dive Assessment")
     selected_dept = st.selectbox("Select Internal Department to Audit:", list(QUESTIONNAIRE_MAP.keys()))
@@ -224,7 +240,7 @@ with view_tab1:
         )
         st.plotly_chart(fig_radar, use_container_width=True)
 
-# -- TAB 2: QUESTIONNAIRE VIEW --
+# -- TAB 2: DIAGNOSTICS VIEW --
 with view_tab2:
     st.markdown("### Question-by-Question Matrix Analysis")
     chosen_dept = st.selectbox("Pick Target Department for Question Breakdown:", list(QUESTIONNAIRE_MAP.keys()), key="tab2_dept")
@@ -258,22 +274,20 @@ with view_tab2:
     )
     st.plotly_chart(fig_dist, use_container_width=True)
 
-# -- TAB 3: DEDICATED INPUT FORM PORTAL --
+# -- TAB 3: LIVE INPUT AND SUBMISSION ENVIRONMENT --
 with view_tab3:
-    st.markdown("### ✍️ Store Evaluation Submission Form")
-    st.markdown("Select your department below to populate your unique questionnaire criteria.")
+    st.markdown("### ✍️ Digital Store Evaluation Submission Form")
+    st.markdown("Select your department below to load your unique questionnaire metrics.")
     
-    # Target client selection
     form_dept = st.selectbox("Your Department / Section:", list(QUESTIONNAIRE_MAP.keys()), key="feedback_form_dept")
     dept_questions = QUESTIONNAIRE_MAP[form_dept]
     
     st.markdown("---")
     
-    # Form layout boundary
     with st.form(key="factory_feedback_form", clear_on_submit=True):
         responses_payload = {}
         
-        # Iteratively build individual rows matching the exact source file arrays
+        # Iteratively build individual rows based on the selected department's JSON metrics list
         for idx, question_string in enumerate(dept_questions, start=1):
             st.markdown(f"##### **Criteria {idx}**")
             st.write(question_string)
@@ -296,20 +310,41 @@ with view_tab3:
         st.markdown("---")
         additional_comments = st.text_area("If you have additional points please specify:", height=100)
         
-        # Submission execution layout
-        submit_btn = st.form_submit_button(label="Submit Official Evaluation")
+        submit_btn = st.form_submit_button(label="Submit Official Evaluation to Store Department")
         
         if submit_btn:
-            # Construct JSON data payload for API webhook forwarding
-            submit_data = {
-                "department": form_dept,
-                "ratings": responses_payload,
-                "comment": additional_comments
-            }
+            # 1. Structure rows to match data model schema
+            timestamp_str = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+            new_entries = []
             
-            # User visual confirmation success block
-            st.success(f"✅ Success! Evaluation form for '{form_dept}' has been recorded.")
-            st.json(submit_data) # Verification display of captured data arrays
+            for idx, question_string in enumerate(dept_questions, start=1):
+                new_entries.append({
+                    "Timestamp": timestamp_str,
+                    "Department": form_dept,
+                    "Question_No": f"Q{idx}",
+                    "Question_Text": question_string,
+                    "Rating": int(responses_payload[f"Q{idx}"]),
+                    "Comment": str(additional_comments)
+                })
+            
+            # 2. Open JSON DB and append rows securely
+            try:
+                if os.path.exists(DB_FILE):
+                    with open(DB_FILE, "r", encoding="utf-8") as f:
+                        current_db_data = json.load(f)
+                else:
+                    current_db_data = []
+                    
+                # Append rows to array database file
+                current_db_data.extend(new_entries)
+                
+                with open(DB_FILE, "w", encoding="utf-8") as f:
+                    json.dump(current_db_data, f, indent=4, ensure_ascii=False)
+                    
+                st.success(f"✅ Submission successful! Feedbacks for '{form_dept}' have been saved directly to the database.")
+                st.info("🔄 Refresh the page or click another analysis tab to see your answers update the charts instantly!")
+            except Exception as e:
+                st.error(f"Error writing to system file database: {str(e)}")
 
 st.markdown("---")
 
