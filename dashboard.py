@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
 
 # --- PAGE CONFIGURATION & THEME ---
 st.set_page_config(
@@ -37,6 +38,10 @@ st.markdown("""
             border-radius: 6px;
             margin-bottom: 12px;
             min-height: 110px;
+        }
+        /* Custom styling for the survey radio layout */
+        div[data-testid="stMarkdownContainer"] p {
+            font-size: 1.05rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -126,12 +131,11 @@ QUESTIONNAIRE_MAP = {
     ]
 }
 
-# --- AUTOMATED DATA SIMULATOR USING EXACT STRUCTURE ---
+# --- DATA GENERATOR / PIPELINE ---
 @st.cache_data
 def generate_factory_responses():
     np.random.seed(42)
     records = []
-    # Simulating 300 survey responses across the plant ecosystem
     for _ in range(300):
         dept = np.random.choice(list(QUESTIONNAIRE_MAP.keys()))
         questions = QUESTIONNAIRE_MAP[dept]
@@ -148,20 +152,18 @@ def generate_factory_responses():
 
 df_responses = generate_factory_responses()
 
-# --- HEADER LOGO & SUMMARY SECTIONS ---
+# --- HEADER SECTION ---
 st.title("🏭 HORIZON ADDIS TYRE")
 st.subheader("Store Management Department - Internal Customer Satisfaction Hub")
 st.markdown("---")
 
-# --- SECTION 1: DYNAMIC ENTERPRISE SCORECARDS ---
+# --- SECTION 1: ENTERPRISE SCORECARDS ---
 st.markdown("### 📊 Departmental Overall Satisfaction Standings (OSS / 5.0)")
 
-# Calculate mean OSS for every single department
 dept_oss = df_responses.groupby("Department")["Rating"].mean().round(2).reset_index()
 dept_oss.columns = ["Department", "OSS"]
 dept_oss_dict = dict(zip(dept_oss["Department"], dept_oss["OSS"]))
 
-# Render scorecards dynamically using a clean grid layout
 cols = st.columns(5)
 for index, dept_name in enumerate(QUESTIONNAIRE_MAP.keys()):
     col_selector = index % 5
@@ -177,28 +179,29 @@ for index, dept_name in enumerate(QUESTIONNAIRE_MAP.keys()):
 
 st.markdown("---")
 
-# --- SECTION 2: INTERACTIVE TOGGLEABLE APP TABS ---
-view_tab1, view_tab2 = st.tabs(["🎯 Customer-by-Customer Analysis", "📝 Question-by-Question Diagnostics"])
+# --- SECTION 2: THREE TOGGLEABLE APP TABS (INCLUDING FORM) ---
+view_tab1, view_tab2, view_tab3 = st.tabs([
+    "🎯 Customer-by-Customer Analysis", 
+    "📝 Question-by-Question Diagnostics",
+    "✍️ Fill Online Feedback Form"
+])
 
+# -- TAB 1: CUSTOMER VIEW --
 with view_tab1:
     st.markdown("### Customer Deep-Dive Assessment")
     selected_dept = st.selectbox("Select Internal Department to Audit:", list(QUESTIONNAIRE_MAP.keys()))
     
-    # Filter dataset for specific stakeholder metrics
     dept_df = df_responses[df_responses["Department"] == selected_dept]
     chart_data = dept_df.groupby(["Question_No", "Question_Text"])["Rating"].mean().reset_index()
     
     col_l, col_r = st.columns([1, 1])
-    
     with col_l:
         st.markdown(f"#### Average Scores for **{selected_dept}** Criteria")
         st.dataframe(
             chart_data.rename(columns={"Question_No": "No.", "Question_Text": "Evaluation Criteria", "Rating": "Avg Score"}).set_index("No."),
             use_container_width=True
         )
-        
     with col_r:
-        # Radar graph displaying evaluation dimensions
         fig_radar = go.Figure()
         fig_radar.add_trace(go.Scatterpolar(
             r=chart_data["Rating"],
@@ -221,26 +224,21 @@ with view_tab1:
         )
         st.plotly_chart(fig_radar, use_container_width=True)
 
+# -- TAB 2: QUESTIONNAIRE VIEW --
 with view_tab2:
     st.markdown("### Question-by-Question Matrix Analysis")
     chosen_dept = st.selectbox("Pick Target Department for Question Breakdown:", list(QUESTIONNAIRE_MAP.keys()), key="tab2_dept")
     
-    # Filter text criteria for chosen department
     available_questions = QUESTIONNAIRE_MAP[chosen_dept]
     chosen_q_text = st.selectbox("Select Unique Questionnaire Statement:", available_questions)
     
-    # Filter to specific question answers
     q_df = df_responses[(df_responses["Department"] == chosen_dept) & (df_responses["Question_Text"] == chosen_q_text)]
-    
-    # Calculate response scale frequencies
     distribution = q_df["Rating"].value_counts().reindex([1, 2, 3, 4, 5], fill_value=0).reset_index()
     distribution.columns = ["Likert Scale", "Total Responses"]
     
-    # Custom mapping dictionary for chart readability
     scale_labels = {1: "1-Strongly Disagree", 2: "2-Disagree", 3: "3-Neutral", 4: "4-Agree", 5: "5-Strongly Agree"}
     distribution["Rating Label"] = distribution["Likert Scale"].map(scale_labels)
     
-    # Interactive Likert Score Bar Breakdown Chart
     fig_dist = px.bar(
         distribution,
         x="Rating Label",
@@ -260,20 +258,71 @@ with view_tab2:
     )
     st.plotly_chart(fig_dist, use_container_width=True)
 
+# -- TAB 3: DEDICATED INPUT FORM PORTAL --
+with view_tab3:
+    st.markdown("### ✍️ Store Evaluation Submission Form")
+    st.markdown("Select your department below to populate your unique questionnaire criteria.")
+    
+    # Target client selection
+    form_dept = st.selectbox("Your Department / Section:", list(QUESTIONNAIRE_MAP.keys()), key="feedback_form_dept")
+    dept_questions = QUESTIONNAIRE_MAP[form_dept]
+    
+    st.markdown("---")
+    
+    # Form layout boundary
+    with st.form(key="factory_feedback_form", clear_on_submit=True):
+        responses_payload = {}
+        
+        # Iteratively build individual rows matching the exact source file arrays
+        for idx, question_string in enumerate(dept_questions, start=1):
+            st.markdown(f"##### **Criteria {idx}**")
+            st.write(question_string)
+            
+            responses_payload[f"Q{idx}"] = st.radio(
+                "Select Score Matrix Alignment:",
+                options=[1, 2, 3, 4, 5],
+                format_func=lambda x: {
+                    1: "1. Strongly Disagree",
+                    2: "2. Disagree",
+                    3: "3. Neutral",
+                    4: "4. Agree",
+                    5: "5. Strongly Agree"
+                }[x],
+                horizontal=True,
+                key=f"form_radio_{form_dept.replace(' ', '_')}_{idx}"
+            )
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+        st.markdown("---")
+        additional_comments = st.text_area("If you have additional points please specify:", height=100)
+        
+        # Submission execution layout
+        submit_btn = st.form_submit_button(label="Submit Official Evaluation")
+        
+        if submit_btn:
+            # Construct JSON data payload for API webhook forwarding
+            submit_data = {
+                "department": form_dept,
+                "ratings": responses_payload,
+                "comment": additional_comments
+            }
+            
+            # User visual confirmation success block
+            st.success(f"✅ Success! Evaluation form for '{form_dept}' has been recorded.")
+            st.json(submit_data) # Verification display of captured data arrays
+
 st.markdown("---")
 
 # --- SECTION 3: SYSTEM AGGREGATE SUMMARY MATRIX ---
 st.markdown("### 📈 Comprehensive Plant Heatmap Analytics Matrix")
 
-# Pivot data to generate a multi-dimensional matrix cross-comparison
 matrix_data = df_responses.groupby(["Department", "Question_No"])["Rating"].mean().unstack().round(2)
-
 fig_heatmap = px.imshow(
     matrix_data,
     labels=dict(x="Question Number Identification", y="Internal Department Client", color="Rating Value"),
     x=matrix_data.columns,
     y=matrix_data.index,
-    color_continuous_scale=['#EF4444', '#F59E0B', '#10B981'] # Red (Friction) -> Orange -> Green (Excellent)
+    color_continuous_scale=['#EF4444', '#F59E0B', '#10B981']
 )
 fig_heatmap.update_layout(
     paper_bgcolor='rgba(0,0,0,0)',
