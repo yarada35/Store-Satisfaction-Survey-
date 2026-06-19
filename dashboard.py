@@ -3,14 +3,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-# 1. PAGE SETUP & THEME CONTEXT
+# 1. PAGE LAYOUT CONFIGURATION
 st.set_page_config(
-    page_title="HORIZON ADDIS TYRE — Internal Satisfaction Hub",
+    page_title="HORIZON ADDIS TYRE — Store Satisfaction Hub",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 2. DICTIONARY CONTAINING RAW CRITERIA DIRECTLY EXTRACTED FROM YOUR JSON FILES
+# 2. COMPLETE EVALUATION QUESTIONS DIRECTLY LOADED FROM YOUR INTERNAL CODES
 DEPARTMENTAL_CRITERIA = {
     "PIQA": [
         "Maintaining inventory of products and raw materials in accordance with established procedures and standards.",
@@ -95,184 +95,159 @@ DEPARTMENTAL_CRITERIA = {
     ]
 }
 
-# 3. INITIALIZE STATE ENGINE (Stores feedback in runtime memory)
-if "survey_database" not in st.session_state:
-    # Build historical template entries to populate charts beautifully on startup
-    pre_populated_data = []
-    np.random.seed(10)
-    for dept_key, questions in DEPARTMENTAL_CRITERIA.items():
-        for i in range(5):  # Inject 5 historical submission forms for each department
-            random_scores = [np.random.randint(3, 6) for _ in questions]
-            pre_populated_data.append({
-                "Timestamp": f"2026-06-19 10:{15 + i}:00",
-                "Department": dept_key,
-                "Average Score": round(float(np.mean(random_scores)), 2),
-                "Feedback Comments": "System generated verification audit trail."
+# 3. ROBUST SESSION STATE INIT (Prevents components from wiping values on selection changes)
+if "survey_db" not in st.session_state:
+    historical_logs = []
+    np.random.seed(24)
+    # Generate initial fallback dataset for real-time graphs representation
+    for index, (d_name, q_list) in enumerate(DEPARTMENTAL_CRITERIA.items()):
+        for r_id in range(3):
+            scores = [np.random.randint(3, 6) for _ in q_list]
+            historical_logs.append({
+                "Timestamp": f"2026-06-19 09:{10 * r_id}:00",
+                "Department": d_name,
+                "Average Score": round(float(np.mean(scores)), 2),
+                "Feedback Comments": "Initial plant pre-load audit log check."
             })
-    st.session_state["survey_database"] = pre_populated_data
+    st.session_state["survey_db"] = historical_logs
 
-# 4. BRANDING HEADERS
+# 4. BRANDING TOP VIEW
 st.title("🏭 HORIZON ADDIS TYRE")
-st.subheader("Store Management Department — Internal Satisfaction System")
+st.subheader("Store Management Department — Internal Customer Evaluation System")
 st.markdown("---")
 
-# 5. SIDEBAR MODE CONTROLLER
-st.sidebar.image("https://img.icons8.com/fluency/96/tire.png", width=55)
-st.sidebar.header("Navigation Hub")
-app_mode = st.sidebar.radio("Go To Area:", ["📋 Active Survey Form Entry", "📈 Real-Time Data Dashboard"])
+# 5. NAVIGATION LAYOUT (SPLIT INTO TABS TO AVOID SELECTION SHIFT BUGS)
+form_tab, dashboard_tab = st.tabs(["📋 Fill Department Evaluation", "📈 Live Performance Dashboard"])
 
-# ======================================================================================
-# MODE A: ACTIVE QUESTIONNAIRE FILLING ENGINE
-# ======================================================================================
-if app_mode == "📋 Active Survey Form Entry":
-    st.markdown("### 📋 Store Performance Evaluation Form")
-    st.info("Your evaluations directly optimize stockroom workflow, logistics accuracy, and delivery times. Please score objectively.")
+# ==========================================
+# TAB 1: FORM RENDERING ENGINE & DROPDOWN HANDLING
+# ==========================================
+with form_tab:
+    st.markdown("### 📋 Active Evaluation Form Entry")
+    st.caption("Please pick your department branch, evaluate the operational targets, and press submit.")
     
-    # Active Dynamic Dropdown Select
+    # Active safe selector
     target_dept = st.selectbox(
-        "Select Your Submitting Department Context:",
-        list(DEPARTMENTAL_CRITERIA.keys())
+        "Select Your Submitting Department:",
+        options=list(DEPARTMENTAL_CRITERIA.keys()),
+        key="form_dept_selector"
     )
     
-    st.markdown(f"#### 🔍 Satisfaction Evaluation Questionnaire: **{target_dept} Department**")
-    st.caption("Grading Scale Matrix: 1 = Strongly Disagree | 2 = Disagree | 3 = Neutral | 4 = Agree | 5 = Strongly Agree")
+    st.markdown(f"**Current Section Metric Sheet:** `{target_dept} Department Questionnaire`")
+    st.markdown("---")
     
-    # Render active criteria matching selection dynamically
-    questions_list = DEPARTMENTAL_CRITERIA[target_dept]
-    user_scores = []
+    # Render criteria inputs
+    questions = DEPARTMENTAL_CRITERIA[target_dept]
+    form_scores = []
     
-    # Generating targeted radio selections per question
-    with st.form(key="active_evaluation_form", clear_on_submit=True):
-        for index, criterion in enumerate(questions_list):
-            st.markdown(f"**Question {index + 1}:** {criterion}")
-            score = st.select_slider(
+    # Form containment block ensuring all answers are passed reliably upon interaction
+    with st.form(key=f"survey_form_{target_dept}", clear_on_submit=True):
+        for idx, text in enumerate(questions):
+            st.markdown(f"**Q{idx+1}:** {text}")
+            val = st.radio(
                 "Assign Rating Score:",
                 options=[1, 2, 3, 4, 5],
-                value=4,
-                key=f"q_{target_dept}_{index}"
+                index=3, # Default selection is '4' (Agree)
+                horizontal=True,
+                key=f"score_input_{target_dept}_{idx}"
             )
-            user_scores.append(score)
-            st.markdown("<br>", unsafe_allowed_html=True)
+            form_scores.append(val)
+            st.markdown("<hr style='border:1px gray dotted;'>", unsafe_allowed_html=True)
             
-        additional_comments = st.text_area("If you have additional validation points please specify here:")
+        text_remarks = st.text_area("Provide additional remarks or suggestions:", key=f"notes_{target_dept}")
         
-        # Submission Handling
-        submit_btn = st.form_submit_button("Submit Department Evaluation", width="content")
-        if submit_btn:
-            calc_avg = round(float(np.mean(user_scores)), 2)
-            
-            # Construct submission dataset payload record
-            new_record = {
+        # Action execution button
+        submit_form = st.form_submit_button("Submit Evaluation Entry", width="content")
+        
+        if submit_form:
+            final_mean = round(float(np.mean(form_scores)), 2)
+            payload = {
                 "Timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Department": target_dept,
-                "Average Score": calc_avg,
-                "Feedback Comments": additional_comments if additional_comments else "None provided."
+                "Average Score": final_mean,
+                "Feedback Comments": text_remarks if text_remarks else "No remarks filed."
             }
-            
-            # Commit to Active Session Memory State
-            st.session_state["survey_database"].append(new_record)
-            st.success(f"🎉 Success! Feedback for '{target_dept}' computed with an Average Index of {calc_avg}/5.0 and securely filed.")
+            # Append log directly into running memory
+            st.session_state["survey_db"].append(payload)
+            st.success(f"🎉 Filed successfully! Average Score evaluated: {final_mean} / 5.0")
             st.balloons()
+            
+            # Instantly rerun context to prompt calculations to display in Tab 2
+            st.rerun()
 
-# ======================================================================================
-# MODE B: DATA ANALYTICS HUB
-# ======================================================================================
-else:
-    st.markdown("### 📈 Live Analytics & Evaluation Registry")
+# ==========================================
+# TAB 2: LIVE PERFORMANCE ANALYTICS & REGISTRY
+# ==========================================
+with dashboard_tab:
+    st.markdown("### 📈 Live Analytics Reporting Engine")
     
-    # Parse running operational database cache 
-    df_live = pd.DataFrame(st.session_state["survey_database"])
+    # Read session dataset safely
+    df_current = pd.DataFrame(st.session_state["survey_db"])
     
-    # Filter selection logic
-    st.markdown("#### Live Filters")
-    dashboard_filter = st.selectbox(
-        "Filter Dashboard View Scope:",
-        ["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys())
+    # Dropdown to isolate specific analytics branches
+    filter_dept = st.selectbox(
+        "Isolate Dashboard View Scope:",
+        options=["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys()),
+        key="dashboard_dept_selector"
     )
     
-    if dashboard_filter != "All Departments":
-        df_display = df_live[df_live["Department"] == dashboard_filter]
+    # Filter matrix evaluation mapping
+    if filter_dept != "All Departments":
+        df_view = df_current[df_current["Department"] == filter_dept]
     else:
-        df_display = df_live
+        df_view = df_current
 
-    # High-Value Card KPI Rows
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(
-            label="Total Evaluation Records Captured", 
-            value=str(len(df_display)), 
-            delta="Live Dynamic Sink"
-        )
-    with col2:
-        global_avg = round(df_display["Average Score"].mean(), 2) if not df_display.empty else 0.0
-        st.metric(
-            label="Aggregated Department Satisfaction Index", 
-            value=f"{global_avg} / 5.0", 
-            delta=None
-        )
-    with col3:
-        highest_dept = df_live.groupby("Department")["Average Score"].mean().idxmax() if not df_live.empty else "N/A"
-        st.metric(
-            label="Top Performing Partner Relationship", 
-            value=highest_dept, 
-            delta="Highest Service Level"
-        )
+    # Key Indicator Widgets
+    m_col1, m_col2, m_col3 = st.columns(3)
+    with m_col1:
+        st.metric("Total Evaluation Surveys Processed", value=len(df_view), delta="Live Feed")
+    with m_col2:
+        global_index = round(df_view["Average Score"].mean(), 2) if not df_view.empty else 0.0
+        st.metric("Mean Satisfaction Index Score", value=f"{global_index} / 5.0")
+    with m_col3:
+        top_unit = df_current.groupby("Department")["Average Score"].mean().idxmax() if not df_current.empty else "None"
+        st.metric("Highest Rating Partner Section", value=top_unit)
         
     st.markdown("---")
     
-    # Graphical Visual Splits
-    chart_col1, chart_col2 = st.columns(2)
+    # Data visualization splits
+    fig_col1, fig_col2 = st.columns(2)
     
-    with chart_col1:
-        if not df_live.empty:
-            df_chart = df_live.groupby("Department")["Average Score"].mean().reset_index()
+    with fig_col1:
+        if not df_current.empty:
+            df_grp = df_current.groupby("Department")["Average Score"].mean().reset_index()
             fig_bar = px.bar(
-                df_chart,
+                df_grp,
                 x="Department",
                 y="Average Score",
-                title="Mean Satisfaction Matrix Across Plant Branches",
-                labels={"Average Score": "Rating Score (Scale 1-5)"},
+                title="Aggregated Satisfaction Rating Matrix",
                 color="Average Score",
-                color_continuous_scale=px.colors.sequential.Tealgrn
+                color_continuous_scale=px.colors.sequential.Darkmint
             )
-            fig_bar.update_layout(yaxis_range=[1, 5], margin=dict(l=15, r=15, t=35, b=15))
-            # 2026 Conforming Parameter: width="stretch"
-            st.plotly_chart(fig_bar, width="stretch", key="dash_bar_analytics")
+            fig_bar.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=35, b=10))
+            st.plotly_chart(fig_bar, width="stretch", key="live_metrics_bar_chart")
         else:
-            st.warning("Awaiting initial metrics logs.")
+            st.info("No visualization metrics data loaded yet.")
             
-    with chart_col2:
-        if not df_display.empty:
-            fig_trend = px.scatter(
-                df_display,
+    with fig_col2:
+        if not df_view.empty:
+            fig_scat = px.scatter(
+                df_view,
                 x="Timestamp",
                 y="Average Score",
                 color="Department",
-                title="Timeline Variance of Logged Department Submissions",
-                size=[10] * len(df_display),
+                title="Timeline Spread of Submissions",
                 hover_data=["Feedback Comments"]
             )
-            fig_trend.update_layout(yaxis_range=[1, 5], margin=dict(l=15, r=15, t=35, b=15))
-            st.plotly_chart(fig_trend, width="stretch", key="dash_trend_scatter")
+            fig_scat.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=35, b=10))
+            st.plotly_chart(fig_scat, width="stretch", key="live_timeline_chart")
             
     st.markdown("---")
     
-    # 6. CENTRAL EXCEL/CSV INVENTORY DATAGRID
-    st.markdown("#### 📋 Consolidated Historical Database Grid View")
-    
-    # Conforming Parameter: width="stretch" replaces the old warning-heavy parameter
+    # Main log datagrid overview
+    st.markdown("#### Detailed Records Registry View")
     st.dataframe(
-        df_display.sort_values(by="Timestamp", ascending=False),
+        df_view.sort_values(by="Timestamp", ascending=False),
         width="stretch",
         hide_index=True
-    )
-    
-    # Export Module
-    csv_stream = df_display.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Current Query Output View as CSV",
-        data=csv_stream,
-        file_name="horizon_addis_live_store_metrics.csv",
-        mime="text/csv",
-        width="content"
     )
