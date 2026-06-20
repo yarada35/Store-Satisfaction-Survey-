@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. INJECT ARTISTIC INDUSTRIAL THEME CSS (Custom Fonts & Backgrounds)
+# 2. INJECT ARTISTIC INDUSTRIAL THEME CSS (Custom Fonts, Bright Tabs & Light Rose Dropdowns)
 st.markdown("""
     <style>
     /* Main App Background - Sleek Industrial Dark Carbon Gradient */
@@ -46,6 +46,37 @@ st.markdown("""
         padding-left: 10px;
         margin-top: 20px;
         margin-bottom: 15px;
+    }
+
+    /* --- TAB NAVIGATION VISIBILITY & FONT SIZE FIX --- */
+    button[data-baseweb="tab"] {
+        color: #ffffff !important;         /* Forces text to be pure white */
+        font-size: 22px !important;        /* Increased artistic font size */
+        font-weight: 700 !important;        /* Bolded headers */
+        font-family: 'Segoe UI', sans-serif;
+        padding: 12px 24px !important;
+    }
+    
+    /* Active indicator bar underneath selected tab */
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #ffc107 !important;         /* Highlight selected tab text in gold */
+        border-bottom-color: #ffc107 !important;
+    }
+
+    /* --- DROPDOWN SELECTION BAR CUSTOMIZATION (Light Rose Theme) --- */
+    div[data-basename="selectbox"] > div, 
+    div[data-testid="stSelectbox"] > div {
+        background-color: #ffe4e1 !important; /* Muted Light Rose (Misty Rose) background */
+        border-radius: 8px !important;
+        border: 2px solid #ffb6c1 !important; /* Slightly darker pink border outline */
+    }
+    
+    /* Text inside the dropdown container */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] span,
+    div[data-testid="stSelectbox"] div[aria-selected="true"] {
+        color: #12181f !important;           /* Dark slate text inside light rose for maximum contrast */
+        font-weight: 600 !important;
+        font-size: 16px !important;
     }
 
     /* Elegant Glass Container styling for Cards & Question Blocks */
