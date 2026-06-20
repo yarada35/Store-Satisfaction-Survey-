@@ -229,7 +229,7 @@ with dashboard_tab:
     with fig_col2:
         st.markdown("<h5 style='color:white;text-align:center;'>3D Rotatable Line & Scatter Matrix Mesh</h5>", unsafe_allow_html=True)
         if not df_view.empty:
-            # FIXED: Using a custom list of color hex strings to guarantee zero execution crashes
+            # Custom list of stable color strings
             fig_3d = px.scatter_3d(
                 df_view,
                 x="Timeline_Hour",
@@ -242,7 +242,7 @@ with dashboard_tab:
             )
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
             
-            # INJECT TEXT MESSAGE DIRECTLY INTO THE 3D ANNOTATIONS LAYOUT
+            # Update background properties
             fig_3d.update_layout(
                 scene=dict(
                     xaxis_title='Timeline Tracker (Hr)',
@@ -251,21 +251,24 @@ with dashboard_tab:
                     backgroundcolor="rgba(0,0,0,0)"
                 ),
                 margin=dict(l=0, r=0, t=10, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                annotations=[dict(
-                    showarrow=False,
-                    text="<b>Perfect, send this message on live analytics result graph.</b>",
-                    x=0.5,
-                    y=0.9,
-                    xref="paper",
-                    yref="paper",
-                    font=dict(color="#ffc107", size=14, family="Arial"),
-                    bgcolor="rgba(18, 24, 31, 0.85)",
-                    bordercolor="#ffc107",
-                    borderpad=8,
-                    borderwidth=2
-                )]
+                paper_bgcolor='rgba(0,0,0,0)'
             )
+            
+            # FIXED: Inject annotation cleanly via explicit native API call to prevent layout validation crashes
+            fig_3d.add_annotation(
+                showarrow=False,
+                text="<b>Perfect, send this message on live analytics result graph.</b>",
+                x=0.5,
+                y=0.95,
+                xref="paper",
+                yref="paper",
+                font=dict(color="#ffc107", size=14, family="Arial"),
+                bgcolor="rgba(18, 24, 31, 0.95)",
+                bordercolor="#ffc107",
+                borderpad=8,
+                borderwidth=2
+            )
+            
             st.plotly_chart(fig_3d, width="stretch", key="3d_timeline_mesh_chart")
 
     st.markdown("---")
