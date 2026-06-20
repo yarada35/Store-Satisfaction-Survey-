@@ -189,7 +189,7 @@ with dashboard_tab:
     filter_dept = st.selectbox("Isolate Dashboard View Scope:", options=["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys()), key="dashboard_dept_selector")
     df_view = df_current if filter_dept == "All Departments" else df_current[df_current["Department"] == filter_dept]
 
-    # Display Metrics (styled in bold yellow via CSS)
+    # Display Metrics
     m_col1, m_col2, m_col3 = st.columns(3)
     with m_col1:
         st.metric("Total Surveys Processed", value=len(df_view))
@@ -208,19 +208,18 @@ with dashboard_tab:
         if not df_current.empty:
             df_current["Rating_Group"] = pd.cut(df_current["Average Score"], bins=[0, 3.5, 4.5, 5.0], labels=["Standard (0-3.5)", "Target (3.5-4.5)", "Optimal (4.5-5.0)"])
             
-            # CUSTOM YELLOW BACKGROUND & WHITE TEXT CONFIGURATION
+            # GOLD/YELLOW BACKGROUND WITH BOLD WHITE TEXT
             fig_venn = px.sunburst(
                 df_current,
                 path=["Rating_Group", "Department"],
                 values="Average Score",
-                color_discrete_sequence=["#ffc107"] # Deep Industrial Gold-Yellow background base across layers
+                color_discrete_sequence=["#ffc107"] 
             )
             fig_venn.update_layout(
                 margin=dict(l=10, r=10, t=10, b=10), 
                 paper_bgcolor='rgba(0,0,0,0)', 
                 plot_bgcolor='rgba(0,0,0,0)'
             )
-            # Force text font inside the Venn matrix to be bold, thick white color
             fig_venn.update_traces(
                 textinfo="label+value",
                 insidetextfont=dict(color="#ffffff", size=14, family="Arial Black")
@@ -230,6 +229,7 @@ with dashboard_tab:
     with fig_col2:
         st.markdown("<h5 style='color:white;text-align:center;'>3D Rotatable Line & Scatter Matrix Mesh</h5>", unsafe_allow_html=True)
         if not df_view.empty:
+            # FIXED: Using a custom list of color hex strings to guarantee zero execution crashes
             fig_3d = px.scatter_3d(
                 df_view,
                 x="Timeline_Hour",
@@ -238,7 +238,7 @@ with dashboard_tab:
                 color="Average Score",
                 hover_name="Department",
                 template="plotly_dark",
-                color_continuous_scale=px.colors.sequential.Goldred
+                color_continuous_scale=["#ffc107", "#ff5722", "#d50000"]
             )
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
             
@@ -259,10 +259,10 @@ with dashboard_tab:
                     y=0.9,
                     xref="paper",
                     yref="paper",
-                    font=dict(color="#ffc107", size=16, family="Arial"),
+                    font=dict(color="#ffc107", size=14, family="Arial"),
                     bgcolor="rgba(18, 24, 31, 0.85)",
                     bordercolor="#ffc107",
-                    borderpad=10,
+                    borderpad=8,
                     borderwidth=2
                 )]
             )
