@@ -75,19 +75,44 @@ st.markdown("""
         border-bottom-color: #ffc107 !important;
     }
 
-    /* --- DROPDOWN SELECTION BAR CUSTOMIZATION (Light Rose Theme) --- */
+    /* --- DROPDOWN SELECTION BAR CUSTOMIZATION (Industrial Yellow Input Theme) --- */
     div[data-basename="selectbox"] > div, 
     div[data-testid="stSelectbox"] > div {
-        background-color: #ffe4e1 !important; 
+        background-color: #ffc107 !important; 
         border-radius: 8px !important;
-        border: 2px solid #ffb6c1 !important; 
+        border: 2px solid #ff9800 !important; 
     }
     
     div[data-testid="stSelectbox"] div[data-baseweb="select"] span,
     div[data-testid="stSelectbox"] div[aria-selected="true"] {
         color: #12181f !important;           
-        font-weight: 600 !important;
+        font-weight: 800 !important;
         font-size: 16px !important;
+    }
+    
+    /* Target the label above the selectbox to make it Yellow */
+    div[data-testid="stSelectbox"] label p {
+        color: #ffc107 !important;
+        font-weight: 700 !important;
+        font-size: 16px !important;
+    }
+
+    /* --- FORM SUBMIT BUTTON (Bold and Black on Yellow Background) --- */
+    div.stButton > button, div[data-testid="stFormSubmitButton"] > button {
+        background-color: #ffc107 !important;
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 16px !important;
+        border: 2px solid #ff9800 !important;
+        border-radius: 8px !important;
+        padding: 10px 24px !important;
+        transition: all 0.3s ease;
+    }
+    
+    div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
+        background-color: #e0a800 !important;
+        color: #000000 !important;
+        box-shadow: 0px 4px 15px rgba(255, 193, 7, 0.4) !important;
     }
 
     /* Elegant Glass Container styling for Cards & Question Blocks */
@@ -226,14 +251,15 @@ with form_tab:
     form_scores = []
     
     with st.form(key=f"survey_form_container_{target_dept}", clear_on_submit=True):
+        # Loop with dynamic industrial yellow typography for questionnaire entries
         for idx, text in enumerate(questions):
-            st.markdown(f"<div style='font-size:16px; font-weight:600; color:#ffffff; margin-top:10px;'>Q{idx+1}: {text}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:16px; font-weight:700; color:#ffc107; margin-top:10px;'>Q{idx+1}: {text}</div>", unsafe_allow_html=True)
             val = st.radio("Rating:", options=[1, 2, 3, 4, 5], index=3, horizontal=True, key=f"score_input_{target_dept}_{idx}", label_visibility="collapsed")
             form_scores.append(val)
             st.markdown("<hr style='border:1px dashed rgba(255,255,255,0.15); margin: 15px 0;'>", unsafe_allow_html=True)
             
         text_remarks = st.text_area("Provide any additional industrial remarks or operations feedback:", key=f"notes_{target_dept}")
-        submit_form = st.form_submit_button("Submit Evaluation Entry", width="content")
+        submit_form = st.form_submit_button("Submit Evaluation Entry Entry", width="content")
         
         if submit_form:
             final_mean = round(float(np.mean(form_scores)), 2)
@@ -257,6 +283,7 @@ with dashboard_tab:
     st.markdown('<div class="section-header">Live Analytics Reporting Engine</div>', unsafe_allow_html=True)
     df_current = pd.DataFrame(st.session_state["survey_db"])
     
+    # Simple clear wrapper for filter selection
     filter_dept = st.selectbox("Isolate Dashboard View Scope:", options=["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys()), key="dashboard_dept_selector")
     df_view = df_current if filter_dept == "All Departments" else df_current[df_current["Department"] == filter_dept]
 
@@ -300,7 +327,6 @@ with dashboard_tab:
         st.markdown("<h5 style='color:white;text-align:center;'>Operational Performance Density Heatmap</h5>", unsafe_allow_html=True)
         
         if not df_view.empty:
-            # FIXED: Replaced the troubleshooting 3D layout entirely with a stable 2D Density Heatmap Matrix 
             fig_density = px.density_heatmap(
                 df_view,
                 x="Timeline_Hour",
@@ -312,7 +338,6 @@ with dashboard_tab:
                 labels={"Timeline_Hour": "Timeline Tracker (Hr)", "Department": "Department Category", "color": "Score Avg"}
             )
             
-            # Inject your text message via safe standard layout attributes
             fig_density.update_layout(
                 title=dict(
                     text="<b>Perfect, send this message on live analytics result graph.</b>",
