@@ -297,48 +297,41 @@ with dashboard_tab:
             st.plotly_chart(fig_venn, width="stretch", key="venn_sunburst_chart")
             
     with fig_col2:
-        st.markdown("<h5 style='color:white;text-align:center;'>3D Rotatable Line & Scatter Matrix Mesh</h5>", unsafe_allow_html=True)
+        st.markdown("<h5 style='color:white;text-align:center;'>Operational Performance Density Heatmap</h5>", unsafe_allow_html=True)
         
-        # CRITICAL PROTECTION CHECK: Only execute layout changes if data view contains metrics
         if not df_view.empty:
-            fig_3d = px.scatter_3d(
+            # FIXED: Replaced the troubleshooting 3D layout entirely with a stable 2D Density Heatmap Matrix 
+            fig_density = px.density_heatmap(
                 df_view,
                 x="Timeline_Hour",
-                y="Dept_Index",
+                y="Department",
                 z="Average Score",
-                color="Average Score",
-                hover_name="Department",
+                histfunc="avg",
                 template="plotly_dark",
-                color_continuous_scale=["#ffc107", "#ff5722", "#d50000"]
-            )
-            fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
-            
-            # FIXED: Avoid combined layout object dictionaries to prevent background validation failures on form submit
-            fig_3d.layout.title = dict(
-                text="<b>Perfect, send this message on live analytics result graph.</b>",
-                x=0.5,
-                y=0.95,
-                xanchor="center",
-                yanchor="top",
-                font=dict(color="#ffc107", size=14, family="Arial")
+                color_continuous_scale=["#12181f", "#ffc107", "#ff5722", "#d50000"],
+                labels={"Timeline_Hour": "Timeline Tracker (Hr)", "Department": "Department Category", "color": "Score Avg"}
             )
             
-            # Update background configurations exclusively inside the scene object
-            fig_3d.update_scenes(
-                xaxis_title='Timeline Tracker (Hr)',
-                yaxis_title='Dept Cluster Key',
-                zaxis_title='Score Metrics',
-                backgroundcolor="rgba(0,0,0,0)"
+            # Inject your text message via safe standard layout attributes
+            fig_density.update_layout(
+                title=dict(
+                    text="<b>Perfect, send this message on live analytics result graph.</b>",
+                    x=0.5,
+                    y=0.98,
+                    xanchor="center",
+                    yanchor="top",
+                    font=dict(color="#ffc107", size=13, family="Arial")
+                ),
+                xaxis=dict(showgrid=False, tickmode="linear"),
+                yaxis=dict(showgrid=False),
+                margin=dict(l=20, r=20, t=50, b=20),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
             )
             
-            fig_3d.update_layout(
-                margin=dict(l=0, r=0, t=40, b=0),
-                paper_bgcolor='rgba(0,0,0,0)'
-            )
-            
-            st.plotly_chart(fig_3d, width="stretch", key="3d_timeline_mesh_chart")
+            st.plotly_chart(fig_density, width="stretch", key="heatmap_perf_matrix_chart")
         else:
-            st.info("Waiting for data alignment to display 3D Mesh analytics...")
+            st.info("Waiting for target data metrics to render layout configuration...")
 
     st.markdown("---")
     st.markdown('<div class="section-header">Detailed Records Registry View</div>', unsafe_allow_html=True)
