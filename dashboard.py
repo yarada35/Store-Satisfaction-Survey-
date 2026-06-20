@@ -124,7 +124,6 @@ DEPARTMENTAL_CRITERIA = {
 if "survey_db" not in st.session_state:
     historical_logs = []
     np.random.seed(42)
-    # Generate numerical indices for the 3D axis coordinates
     for d_idx, (d_name, q_list) in enumerate(DEPARTMENTAL_CRITERIA.items()):
         for r_id in range(4):
             scores = [np.random.randint(3, 6) for _ in q_list]
@@ -190,7 +189,7 @@ with dashboard_tab:
     filter_dept = st.selectbox("Isolate Dashboard View Scope:", options=["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys()), key="dashboard_dept_selector")
     df_view = df_current if filter_dept == "All Departments" else df_current[df_current["Department"] == filter_dept]
 
-    # Display Metrics (styled in bold yellow via the CSS injection above)
+    # Display Metrics
     m_col1, m_col2, m_col3 = st.columns(3)
     with m_col1:
         st.metric("Total Surveys Processed", value=len(df_view))
@@ -207,22 +206,30 @@ with dashboard_tab:
     with fig_col1:
         st.markdown("<h5 style='color:white;text-align:center;'>Proportional Venn Diagram (Sunburst Distribution)</h5>", unsafe_allow_html=True)
         if not df_current.empty:
-            # Create categorical ranges to serve as Venn intersection zones
             df_current["Rating_Group"] = pd.cut(df_current["Average Score"], bins=[0, 3.5, 4.5, 5.0], labels=["Standard (0-3.5)", "Target (3.5-4.5)", "Optimal (4.5-5.0)"])
+            
+            # GOLD/YELLOW BACKGROUND WITH BOLD WHITE TEXT
             fig_venn = px.sunburst(
                 df_current,
                 path=["Rating_Group", "Department"],
                 values="Average Score",
-                template="plotly_dark",
-                color_continuous_scale=px.colors.sequential.Sunsetdark
+                color_discrete_sequence=["#ffc107"] 
             )
-            fig_venn.update_layout(margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            fig_venn.update_layout(
+                margin=dict(l=10, r=10, t=10, b=10), 
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            fig_venn.update_traces(
+                textinfo="label+value",
+                insidetextfont=dict(color="#ffffff", size=14, family="Arial Black")
+            )
             st.plotly_chart(fig_venn, width="stretch", key="venn_sunburst_chart")
             
     with fig_col2:
         st.markdown("<h5 style='color:white;text-align:center;'>3D Rotatable Line & Scatter Matrix Mesh</h5>", unsafe_allow_html=True)
         if not df_view.empty:
-            # Interactive 3D plotting matrix space
+            # FIXED: Swapped color_continuous_scale string to standard 'YlOrRd' sequence
             fig_3d = px.scatter_3d(
                 df_view,
                 x="Timeline_Hour",
@@ -231,10 +238,11 @@ with dashboard_tab:
                 color="Average Score",
                 hover_name="Department",
                 template="plotly_dark",
-                color_continuous_scale=px.colors.sequential.Goldred
+                color_continuous_scale="YlOrRd"
             )
-            # Render a 3D line connectors mesh
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
+            
+            # INJECT TEXT MESSAGE DIRECTLY INTO THE 3D ANNOTATIONS LAYOUT
             fig_3d.update_layout(
                 scene=dict(
                     xaxis_title='Timeline Tracker (Hr)',
@@ -243,7 +251,20 @@ with dashboard_tab:
                     backgroundcolor="rgba(0,0,0,0)"
                 ),
                 margin=dict(l=0, r=0, t=10, b=0),
-                paper_bgcolor='rgba(0,0,0,0)'
+                paper_bgcolor='rgba(0,0,0,0)',
+                annotations=[dict(
+                    showarrow=False,
+                    text="<b>Perfect, send this message on live analytics result graph.</b>",
+                    x=0.5,
+                    y=0.9,
+                    xref="paper",
+                    yref="paper",
+                    font=dict(color="#ffc107", size=14, family="Arial"),
+                    bgcolor="rgba(18, 24, 31, 0.85)",
+                    bordercolor="#ffc107",
+                    borderpad=8,
+                    borderwidth=2
+                )]
             )
             st.plotly_chart(fig_3d, width="stretch", key="3d_timeline_mesh_chart")
 
