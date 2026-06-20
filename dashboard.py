@@ -241,35 +241,35 @@ with dashboard_tab:
             )
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
             
-            # Update canvas structural layout parameters
+            # FIXED: Text message is cleanly bundled as a 3D scene-space annotation.
+            # Middle data coordinate coordinates align the banner directly above the mesh cluster safely.
+            mean_x = float(df_view["Timeline_Hour"].mean())
+            mean_y = float(df_view["Dept_Index"].mean())
+            max_z  = float(df_view["Average Score"].max()) + 0.5
+            
             fig_3d.update_layout(
                 scene=dict(
                     xaxis_title='Timeline Tracker (Hr)',
                     yaxis_title='Dept Cluster Key',
                     zaxis_title='Score Metrics',
-                    backgroundcolor="rgba(0,0,0,0)"
+                    backgroundcolor="rgba(0,0,0,0)",
+                    annotations=[
+                        dict(
+                            showarrow=False,
+                            x=mean_x,
+                            y=mean_y,
+                            z=max_z,
+                            text="<b>Perfect, send this message on live analytics result graph.</b>",
+                            font=dict(color="#ffc107", size=13, family="Arial"),
+                            bgcolor="rgba(18, 24, 31, 0.9)",
+                            bordercolor="#ffc107",
+                            borderpad=8,
+                            borderwidth=2
+                        )
+                    ]
                 ),
                 margin=dict(l=0, r=0, t=10, b=0),
                 paper_bgcolor='rgba(0,0,0,0)'
-            )
-            
-            # FIXED: Added the global chart text banner as a direct top-level relative layout component to keep the 3D scene engine fully stable
-            fig_3d.update_layout(
-                annotations=[
-                    dict(
-                        text="<b>Perfect, send this message on live analytics result graph.</b>",
-                        showarrow=False,
-                        x=0.5,
-                        y=0.95,
-                        xref="paper",
-                        yref="paper",
-                        font=dict(color="#ffc107", size=14, family="Arial"),
-                        bgcolor="rgba(18, 24, 31, 0.9)",
-                        bordercolor="#ffc107",
-                        borderpad=8,
-                        borderwidth=2
-                    )
-                ]
             )
             
             st.plotly_chart(fig_3d, width="stretch", key="3d_timeline_mesh_chart")
