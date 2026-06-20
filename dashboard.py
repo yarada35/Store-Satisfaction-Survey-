@@ -10,7 +10,63 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. COMPLETE EVALUATION QUESTIONS DIRECTLY LOADED FROM YOUR INTERNAL CODES
+# 2. INJECT ARTISTIC INDUSTRIAL THEME CSS (Custom Fonts & Backgrounds)
+st.markdown("""
+    <style>
+    /* Main App Background - Sleek Industrial Dark Carbon Gradient */
+    .stApp {
+        background: linear-gradient(135deg, #12181f 0%, #1a232e 100%);
+        color: #e2e8f0;
+    }
+    
+    /* Header Custom Typography styling */
+    .main-title {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        margin-bottom: 5px;
+    }
+    
+    .sub-title {
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 20px;
+        font-weight: 400;
+        color: #00ffd0; /* Electric Tech Cyan */
+        margin-bottom: 25px;
+    }
+    
+    .section-header {
+        font-family: 'Arial Black', Gadget, sans-serif;
+        font-size: 24px;
+        color: #ffc107; /* Industrial Gold */
+        border-left: 5px solid #ffc107;
+        padding-left: 10px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+    }
+
+    /* Elegant Glass Container styling for Cards & Question Blocks */
+    div[data-testid="stForm"], .stMetric, div[data-testid="stMarkdownContainer"] hr {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+    }
+
+    /* Customizing Radio buttons to pop out visually */
+    div[data-testid="stRadio"] label {
+        color: #ffffff !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. COMPLETE EVALUATION QUESTIONS DIRECTLY LOADED
 DEPARTMENTAL_CRITERIA = {
     "PIQA": [
         "Maintaining inventory of products and raw materials in accordance with established procedures and standards.",
@@ -95,7 +151,7 @@ DEPARTMENTAL_CRITERIA = {
     ]
 }
 
-# 3. ROBUST SESSION STATE INIT
+# 4. ROBUST SESSION STATE INIT
 if "survey_db" not in st.session_state:
     historical_logs = []
     np.random.seed(24)
@@ -103,27 +159,25 @@ if "survey_db" not in st.session_state:
         for r_id in range(3):
             scores = [np.random.randint(3, 6) for _ in q_list]
             historical_logs.append({
-                "Timestamp": f"2026-06-19 09:{10 * r_id}:00",
+                "Timestamp": f"2026-06-20 09:{10 * r_id}:00",
                 "Department": d_name,
                 "Average Score": round(float(np.mean(scores)), 2),
-                "Feedback Comments": "Initial plant pre-load audit log check."
+                "Feedback Comments": "Initial pre-load plant verification check."
             })
     st.session_state["survey_db"] = historical_logs
 
-# 4. BRANDING HEAD HEADER
-st.title("🏭 HORIZON ADDIS TYRE")
-st.subheader("Store Management Department — Internal Customer Evaluation System")
-st.markdown("---")
+# 5. BRANDING HEADER USING STYLED TYPOGRAPHY
+st.markdown('<div class="main-title">🏭 HORIZON ADDIS TYRE</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Store Management Department — Internal Quality & Satisfaction Engine</div>', unsafe_allow_html=True)
 
-# 5. NAVIGATION SWITCH TABS
+# 6. NAVIGATION SWITCH TABS
 form_tab, dashboard_tab = st.tabs(["📋 Fill Department Evaluation", "📈 Live Performance Dashboard"])
 
 # ==========================================
 # TAB 1: SURVEY LOGIC FORM
 # ==========================================
 with form_tab:
-    st.markdown("### 📋 Active Evaluation Form Entry")
-    st.caption("Please pick your department branch, evaluate the operational targets, and press submit.")
+    st.markdown('<div class="section-header">Active Evaluation Form Entry</div>', unsafe_allow_html=True)
     
     target_dept = st.selectbox(
         "Select Your Submitting Department:",
@@ -131,8 +185,7 @@ with form_tab:
         key="form_dept_selector"
     )
     
-    st.markdown(f"**Current Section Metric Sheet:** `{target_dept} Department Questionnaire`")
-    st.markdown("---")
+    st.markdown(f"**Current Context Scope:** Evaluating Store performance via `{target_dept}` perspective.")
     
     questions = DEPARTMENTAL_CRITERIA[target_dept]
     form_scores = []
@@ -140,21 +193,21 @@ with form_tab:
     # Secure cleanly scoped form structure
     with st.form(key=f"survey_form_container_{target_dept}", clear_on_submit=True):
         for idx, text in enumerate(questions):
-            st.markdown(f"**Q{idx+1}:** {text}")
+            st.markdown(f"<div style='font-size:16px; font-weight:600; color:#ffffff; margin-top:10px;'>Q{idx+1}: {text}</div>", unsafe_allow_html=True)
             val = st.radio(
-                "Assign Rating Score:",
+                "Assign Performance Rating:",
                 options=[1, 2, 3, 4, 5],
                 index=3, 
                 horizontal=True,
-                key=f"score_input_{target_dept}_{idx}"
+                key=f"score_input_{target_dept}_{idx}",
+                label_visibility="collapsed"
             )
             form_scores.append(val)
-            # Dotted line separating internal questions INSIDE the form block safely
-            st.markdown("<hr style='border:1px gray dotted;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='border:1px dashed rgba(255,255,255,0.15); margin: 15px 0;'>", unsafe_allow_html=True)
             
-        text_remarks = st.text_area("Provide additional remarks or suggestions:", key=f"notes_{target_dept}")
+        text_remarks = st.text_area("Provide any additional industrial remarks or operations feedback:", key=f"notes_{target_dept}")
         
-        # Form Submit Button MUST sit here before closing out context block
+        # Form Submit Button 
         submit_form = st.form_submit_button("Submit Evaluation Entry", width="content")
         
         if submit_form:
@@ -166,7 +219,7 @@ with form_tab:
                 "Feedback Comments": text_remarks if text_remarks else "No remarks filed."
             }
             st.session_state["survey_db"].append(payload)
-            st.success(f"🎉 Filed successfully! Average Score evaluated: {final_mean} / 5.0")
+            st.success(f"🎉 Logs filed successfully! Average calculated Matrix Score: {final_mean} / 5.0")
             st.balloons()
             st.rerun()
 
@@ -174,7 +227,7 @@ with form_tab:
 # TAB 2: LIVE METRICS REPORTING DASHBOARD
 # ==========================================
 with dashboard_tab:
-    st.markdown("### 📈 Live Analytics Reporting Engine")
+    st.markdown('<div class="section-header">Live Analytics Reporting Engine</div>', unsafe_allow_html=True)
     
     df_current = pd.DataFrame(st.session_state["survey_db"])
     
@@ -192,7 +245,7 @@ with dashboard_tab:
     # Metric summary layouts
     m_col1, m_col2, m_col3 = st.columns(3)
     with m_col1:
-        st.metric("Total Evaluation Surveys Processed", value=len(df_view), delta="Live Feed")
+        st.metric("Total Evaluation Surveys Processed", value=len(df_view), delta="Live Feed Updates")
     with m_col2:
         global_index = round(df_view["Average Score"].mean(), 2) if not df_view.empty else 0.0
         st.metric("Mean Satisfaction Index Score", value=f"{global_index} / 5.0")
@@ -200,7 +253,7 @@ with dashboard_tab:
         top_unit = df_current.groupby("Department")["Average Score"].mean().idxmax() if not df_current.empty else "None"
         st.metric("Highest Rating Partner Section", value=top_unit)
         
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     fig_col1, fig_col2 = st.columns(2)
     
@@ -213,9 +266,10 @@ with dashboard_tab:
                 y="Average Score",
                 title="Aggregated Satisfaction Rating Matrix",
                 color="Average Score",
-                color_continuous_scale=px.colors.sequential.Darkmint
+                template="plotly_dark",
+                color_continuous_scale=px.colors.sequential.Tealgrn
             )
-            fig_bar.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=35, b=10))
+            fig_bar.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_bar, width="stretch", key="live_metrics_bar_chart")
         else:
             st.info("No visualization metrics data loaded yet.")
@@ -228,14 +282,15 @@ with dashboard_tab:
                 y="Average Score",
                 color="Department",
                 title="Timeline Spread of Submissions",
+                template="plotly_dark",
                 hover_data=["Feedback Comments"]
             )
-            fig_scat.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=35, b=10))
+            fig_scat.update_layout(yaxis_range=[1,5], margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_scat, width="stretch", key="live_timeline_chart")
             
     st.markdown("---")
     
-    st.markdown("#### Detailed Records Registry View")
+    st.markdown('<div class="section-header">Detailed Records Registry View</div>', unsafe_allow_html=True)
     st.dataframe(
         df_view.sort_values(by="Timestamp", ascending=False),
         width="stretch",
