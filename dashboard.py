@@ -222,7 +222,6 @@ with form_tab:
     st.markdown('<div class="section-header">Active Evaluation Form Entry</div>', unsafe_allow_html=True)
     target_dept = st.selectbox("Select Your Submitting Department:", options=list(DEPARTMENTAL_CRITERIA.keys()), key="form_dept_selector")
     
-    # Restored dynamic mapping of full-sentence items
     questions = DEPARTMENTAL_CRITERIA[target_dept]
     form_scores = []
     
@@ -280,7 +279,6 @@ with dashboard_tab:
         if not df_current.empty:
             df_current["Rating_Group"] = pd.cut(df_current["Average Score"], bins=[0, 3.5, 4.5, 5.0], labels=["Standard (0-3.5)", "Target (3.5-4.5)", "Optimal (4.5-5.0)"])
             
-            # GOLD/YELLOW BACKGROUND WITH BOLD WHITE TEXT
             fig_venn = px.sunburst(
                 df_current,
                 path=["Rating_Group", "Department"],
@@ -313,33 +311,24 @@ with dashboard_tab:
             )
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
             
-            # Safely calculate midpoints for positioning the floating 3D text annotation box
-            mean_x = float(df_view["Timeline_Hour"].mean())
-            mean_y = float(df_view["Dept_Index"].mean())
-            max_z  = float(df_view["Average Score"].max()) + 0.5
-            
+            # FIXED: Text message is cleanly bundled using Plotly's native canvas title object.
+            # This bypasses the 3D coordinate validation layout engine entirely, guaranteeing zero crashes.
             fig_3d.update_layout(
+                title=dict(
+                    text="<b>Perfect, send this message on live analytics result graph.</b>",
+                    x=0.5,
+                    y=0.9,
+                    xanchor="center",
+                    yanchor="top",
+                    font=dict(color="#ffc107", size=14, family="Arial")
+                ),
                 scene=dict(
                     xaxis_title='Timeline Tracker (Hr)',
                     yaxis_title='Dept Cluster Key',
                     zaxis_title='Score Metrics',
-                    backgroundcolor="rgba(0,0,0,0)",
-                    annotations=[
-                        dict(
-                            showarrow=False,
-                            x=mean_x,
-                            y=mean_y,
-                            z=max_z,
-                            text="<b>Perfect, send this message on live analytics result graph.</b>",
-                            font=dict(color="#ffc107", size=13, family="Arial"),
-                            bgcolor="rgba(18, 24, 31, 0.9)",
-                            bordercolor="#ffc107",
-                            borderpad=8,
-                            borderwidth=2
-                        )
-                    ]
+                    backgroundcolor="rgba(0,0,0,0)"
                 ),
-                margin=dict(l=0, r=0, t=10, b=0),
+                margin=dict(l=0, r=0, t=50, b=0),
                 paper_bgcolor='rgba(0,0,0,0)'
             )
             
