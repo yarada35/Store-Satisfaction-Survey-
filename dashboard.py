@@ -95,11 +95,10 @@ DEPARTMENTAL_CRITERIA = {
     ]
 }
 
-# 3. ROBUST SESSION STATE INIT (Prevents components from wiping values on selection changes)
+# 3. ROBUST SESSION STATE INIT
 if "survey_db" not in st.session_state:
     historical_logs = []
     np.random.seed(24)
-    # Generate initial fallback dataset for real-time graphs representation
     for index, (d_name, q_list) in enumerate(DEPARTMENTAL_CRITERIA.items()):
         for r_id in range(3):
             scores = [np.random.randint(3, 6) for _ in q_list]
@@ -111,22 +110,21 @@ if "survey_db" not in st.session_state:
             })
     st.session_state["survey_db"] = historical_logs
 
-# 4. BRANDING TOP VIEW
+# 4. BRANDING HEAD HEADER
 st.title("🏭 HORIZON ADDIS TYRE")
 st.subheader("Store Management Department — Internal Customer Evaluation System")
 st.markdown("---")
 
-# 5. NAVIGATION LAYOUT (SPLIT INTO TABS TO AVOID SELECTION SHIFT BUGS)
+# 5. NAVIGATION SWITCH TABS
 form_tab, dashboard_tab = st.tabs(["📋 Fill Department Evaluation", "📈 Live Performance Dashboard"])
 
 # ==========================================
-# TAB 1: FORM RENDERING ENGINE & DROPDOWN HANDLING
+# TAB 1: SURVEY LOGIC FORM
 # ==========================================
 with form_tab:
     st.markdown("### 📋 Active Evaluation Form Entry")
     st.caption("Please pick your department branch, evaluate the operational targets, and press submit.")
     
-    # Active safe selector
     target_dept = st.selectbox(
         "Select Your Submitting Department:",
         options=list(DEPARTMENTAL_CRITERIA.keys()),
@@ -136,27 +134,27 @@ with form_tab:
     st.markdown(f"**Current Section Metric Sheet:** `{target_dept} Department Questionnaire`")
     st.markdown("---")
     
-    # Render criteria inputs
     questions = DEPARTMENTAL_CRITERIA[target_dept]
     form_scores = []
     
-    # Form containment block ensuring all answers are passed reliably upon interaction
-    with st.form(key=f"survey_form_{target_dept}", clear_on_submit=True):
+    # Secure cleanly scoped form structure
+    with st.form(key=f"survey_form_container_{target_dept}", clear_on_submit=True):
         for idx, text in enumerate(questions):
             st.markdown(f"**Q{idx+1}:** {text}")
             val = st.radio(
                 "Assign Rating Score:",
                 options=[1, 2, 3, 4, 5],
-                index=3, # Default selection is '4' (Agree)
+                index=3, 
                 horizontal=True,
                 key=f"score_input_{target_dept}_{idx}"
             )
             form_scores.append(val)
-            st.markdown("<hr style='border:1px gray dotted;'>", unsafe_allowed_html=True)
+            # Dotted line separating internal questions INSIDE the form block safely
+            st.markdown("<hr style='border:1px gray dotted;'>", unsafe_allow_html=True)
             
         text_remarks = st.text_area("Provide additional remarks or suggestions:", key=f"notes_{target_dept}")
         
-        # Action execution button
+        # Form Submit Button MUST sit here before closing out context block
         submit_form = st.form_submit_button("Submit Evaluation Entry", width="content")
         
         if submit_form:
@@ -167,37 +165,31 @@ with form_tab:
                 "Average Score": final_mean,
                 "Feedback Comments": text_remarks if text_remarks else "No remarks filed."
             }
-            # Append log directly into running memory
             st.session_state["survey_db"].append(payload)
             st.success(f"🎉 Filed successfully! Average Score evaluated: {final_mean} / 5.0")
             st.balloons()
-            
-            # Instantly rerun context to prompt calculations to display in Tab 2
             st.rerun()
 
 # ==========================================
-# TAB 2: LIVE PERFORMANCE ANALYTICS & REGISTRY
+# TAB 2: LIVE METRICS REPORTING DASHBOARD
 # ==========================================
 with dashboard_tab:
     st.markdown("### 📈 Live Analytics Reporting Engine")
     
-    # Read session dataset safely
     df_current = pd.DataFrame(st.session_state["survey_db"])
     
-    # Dropdown to isolate specific analytics branches
     filter_dept = st.selectbox(
         "Isolate Dashboard View Scope:",
         options=["All Departments"] + list(DEPARTMENTAL_CRITERIA.keys()),
         key="dashboard_dept_selector"
     )
     
-    # Filter matrix evaluation mapping
     if filter_dept != "All Departments":
         df_view = df_current[df_current["Department"] == filter_dept]
     else:
         df_view = df_current
 
-    # Key Indicator Widgets
+    # Metric summary layouts
     m_col1, m_col2, m_col3 = st.columns(3)
     with m_col1:
         st.metric("Total Evaluation Surveys Processed", value=len(df_view), delta="Live Feed")
@@ -210,7 +202,6 @@ with dashboard_tab:
         
     st.markdown("---")
     
-    # Data visualization splits
     fig_col1, fig_col2 = st.columns(2)
     
     with fig_col1:
@@ -244,7 +235,6 @@ with dashboard_tab:
             
     st.markdown("---")
     
-    # Main log datagrid overview
     st.markdown("#### Detailed Records Registry View")
     st.dataframe(
         df_view.sort_values(by="Timestamp", ascending=False),
