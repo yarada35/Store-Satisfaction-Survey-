@@ -298,6 +298,8 @@ with dashboard_tab:
             
     with fig_col2:
         st.markdown("<h5 style='color:white;text-align:center;'>3D Rotatable Line & Scatter Matrix Mesh</h5>", unsafe_allow_html=True)
+        
+        # CRITICAL PROTECTION CHECK: Only execute layout changes if data view contains metrics
         if not df_view.empty:
             fig_3d = px.scatter_3d(
                 df_view,
@@ -311,28 +313,32 @@ with dashboard_tab:
             )
             fig_3d.update_traces(marker=dict(size=6, opacity=0.9), line=dict(width=4, color="#ffc107"))
             
-            # FIXED: Text message is cleanly bundled using Plotly's native canvas title object.
-            # This bypasses the 3D coordinate validation layout engine entirely, guaranteeing zero crashes.
+            # FIXED: Avoid combined layout object dictionaries to prevent background validation failures on form submit
+            fig_3d.layout.title = dict(
+                text="<b>Perfect, send this message on live analytics result graph.</b>",
+                x=0.5,
+                y=0.95,
+                xanchor="center",
+                yanchor="top",
+                font=dict(color="#ffc107", size=14, family="Arial")
+            )
+            
+            # Update background configurations exclusively inside the scene object
+            fig_3d.update_scenes(
+                xaxis_title='Timeline Tracker (Hr)',
+                yaxis_title='Dept Cluster Key',
+                zaxis_title='Score Metrics',
+                backgroundcolor="rgba(0,0,0,0)"
+            )
+            
             fig_3d.update_layout(
-                title=dict(
-                    text="<b>Perfect, send this message on live analytics result graph.</b>",
-                    x=0.5,
-                    y=0.9,
-                    xanchor="center",
-                    yanchor="top",
-                    font=dict(color="#ffc107", size=14, family="Arial")
-                ),
-                scene=dict(
-                    xaxis_title='Timeline Tracker (Hr)',
-                    yaxis_title='Dept Cluster Key',
-                    zaxis_title='Score Metrics',
-                    backgroundcolor="rgba(0,0,0,0)"
-                ),
-                margin=dict(l=0, r=0, t=50, b=0),
+                margin=dict(l=0, r=0, t=40, b=0),
                 paper_bgcolor='rgba(0,0,0,0)'
             )
             
             st.plotly_chart(fig_3d, width="stretch", key="3d_timeline_mesh_chart")
+        else:
+            st.info("Waiting for data alignment to display 3D Mesh analytics...")
 
     st.markdown("---")
     st.markdown('<div class="section-header">Detailed Records Registry View</div>', unsafe_allow_html=True)
